@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agua Viva — Sistema de Gestión</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--azul:#0a4f7a;--azul-claro:#1a7db8;--agua:#4dc8f0;--agua-suave:#d0f0fc;--blanco:#f8fbff;--gris:#6b7a8d;--gris-claro:#e8f0f7;--rojo:#e05c5c;--verde:#3ab87a;--naranja:#f0820a;--amarillo:#f5c400;--sombra:0 4px 24px rgba(10,79,122,0.12);--radio:16px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:linear-gradient(135deg,#e8f4fd,#f0faff,#ddf1fb);min-height:100vh;color:#1a2a3a;}
+
+/* LOGIN */
+#login-screen{position:fixed;inset:0;background:linear-gradient(135deg,var(--azul),var(--azul-claro));display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;}
+.login-card{background:white;border-radius:24px;padding:36px 32px;width:100%;max-width:400px;box-shadow:0 24px 60px rgba(0,0,0,0.25);text-align:center;}
+.login-logo{height:80px;margin-bottom:18px;}
+.login-card h2{font-family:'Syne',sans-serif;font-size:1.3rem;color:var(--azul);margin-bottom:5px;}
+.login-card p{font-size:0.84rem;color:var(--gris);margin-bottom:22px;}
+.roles-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:22px;}
+.rol-btn{border:2px solid var(--gris-claro);border-radius:14px;padding:16px 10px;cursor:pointer;background:white;transition:all 0.2s;text-align:center;}
+.rol-btn:hover{border-color:var(--azul-claro);background:var(--agua-suave);}
+.rol-btn.selected{border-color:var(--azul);background:var(--agua-suave);box-shadow:0 0 0 3px rgba(10,79,122,0.1);}
+.rol-btn .ri{font-size:2rem;margin-bottom:6px;}
+.rol-btn .rn{font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;color:var(--azul);}
+.rol-btn .rd{font-size:0.72rem;color:var(--gris);margin-top:2px;}
+.pass-field{display:none;flex-direction:column;gap:7px;margin-bottom:14px;text-align:left;}
+.pass-field.visible{display:flex;}
+.pass-field label{font-size:0.76rem;font-weight:600;color:var(--azul);text-transform:uppercase;letter-spacing:.5px;}
+.pass-field input{border:2px solid var(--gris-claro);border-radius:10px;padding:10px 14px;font-family:'DM Sans',sans-serif;font-size:.95rem;outline:none;transition:border-color .2s;}
+.pass-field input:focus{border-color:var(--azul-claro);}
+.btn-entrar{width:100%;background:linear-gradient(90deg,var(--azul),var(--azul-claro));color:white;border:none;border-radius:12px;padding:13px;font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;transition:opacity .2s;}
+.btn-entrar:hover{opacity:.9;}
+.error-msg{background:#fdeaea;color:var(--rojo);border-radius:8px;padding:8px 12px;font-size:.82rem;display:none;margin-bottom:10px;}
+
+/* LOADING */
+#loading-screen{position:fixed;inset:0;background:linear-gradient(135deg,var(--azul),var(--azul-claro));display:none;flex-direction:column;align-items:center;justify-content:center;z-index:9998;color:white;gap:18px;text-align:center;}
+#loading-screen img{height:80px;filter:brightness(0) invert(1);}
+#loading-screen p{opacity:.75;font-size:.9rem;}
+.loader-bar{width:220px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;overflow:hidden;}
+.loader-fill{height:100%;background:white;border-radius:2px;transition:width .4s;}
+
+/* HEADER */
+header{background:linear-gradient(90deg,var(--azul),var(--azul-claro));color:white;padding:8px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 18px rgba(10,79,122,.25);position:sticky;top:0;z-index:100;gap:12px;}
+.logo-img{height:48px;width:auto;filter:brightness(0) invert(1);}
+.hr{display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;}
+.rol-badge{border-radius:20px;padding:4px 12px;font-size:.76rem;font-weight:700;display:flex;align-items:center;gap:4px;white-space:nowrap;}
+.rol-badge.admin{background:rgba(255,215,0,.25);border:1px solid rgba(255,215,0,.4);}
+.rol-badge.repartidor{background:rgba(255,255,255,.15);}
+.nube-b{background:rgba(255,255,255,.15);border-radius:20px;padding:4px 10px;font-size:.76rem;display:flex;align-items:center;gap:4px;white-space:nowrap;}
+.nd{width:7px;height:7px;border-radius:50%;background:#aaa;transition:background .4s;}
+.nd.ok{background:#5ef08a;} .nd.sync{background:#f0d050;animation:pulso .8s infinite;} .nd.err{background:#ff6b6b;}
+@keyframes pulso{0%,100%{opacity:1}50%{opacity:.3}}
+.sp{background:rgba(255,255,255,.15);border-radius:30px;padding:4px 12px;font-size:.78rem;display:flex;align-items:center;gap:4px;white-space:nowrap;}
+.sp strong{font-size:.95rem;font-family:'Syne',sans-serif;}
+.btn-salir{background:rgba(255,255,255,.15);border:none;color:white;border-radius:20px;padding:4px 12px;font-size:.76rem;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.btn-salir:hover{background:rgba(255,255,255,.25);}
+
+/* TABS */
+.tabs-bar{background:white;border-bottom:2px solid var(--gris-claro);display:flex;overflow-x:auto;position:sticky;top:66px;z-index:90;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.tab-btn{flex:1;min-width:90px;border:none;background:none;padding:14px 8px;font-family:'Syne',sans-serif;font-size:.82rem;font-weight:700;color:var(--gris);cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;white-space:nowrap;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.tab-btn .ti{font-size:1.2rem;}
+.tab-btn.active{color:var(--azul);border-bottom-color:var(--azul);background:var(--agua-suave);}
+.tab-btn:hover{background:var(--agua-suave);}
+
+/* CONTENT */
+.tab-content{display:none;max-width:1200px;margin:0 auto;padding:24px 20px;}
+.tab-content.active{display:block;}
+
+/* STATS DASHBOARD */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px;}
+.stat-card{background:white;border-radius:var(--radio);padding:20px;box-shadow:var(--sombra);display:flex;align-items:center;gap:14px;}
+.stat-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.6rem;flex-shrink:0;}
+.stat-icon.azul{background:var(--agua-suave);}
+.stat-icon.verde{background:#e8f5e9;}
+.stat-icon.naranja{background:#fff3e0;}
+.stat-icon.rojo{background:#fdeaea;}
+.stat-val{font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;color:var(--azul);line-height:1;}
+.stat-lbl{font-size:.78rem;color:var(--gris);margin-top:3px;}
+.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.chart-card{background:white;border-radius:var(--radio);padding:20px;box-shadow:var(--sombra);}
+.chart-card h3{font-family:'Syne',sans-serif;font-size:.95rem;color:var(--azul);margin-bottom:14px;}
+.bar-item{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.bar-label{font-size:.78rem;color:var(--gris);width:100px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bar-track{flex:1;height:10px;background:var(--gris-claro);border-radius:5px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:5px;background:linear-gradient(90deg,var(--azul),var(--azul-claro));transition:width .6s;}
+.bar-val{font-size:.76rem;color:var(--azul);font-weight:600;width:36px;text-align:right;flex-shrink:0;}
+.deuda-item{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gris-claro);}
+.deuda-item:last-child{border:none;}
+.deuda-nombre{font-size:.84rem;font-weight:500;color:#1a2a3a;}
+.deuda-monto{font-family:'Syne',sans-serif;font-weight:700;color:var(--rojo);}
+
+/* CLIENTES */
+.two-col{display:grid;grid-template-columns:380px 1fr;gap:22px;align-items:start;}
+.panel-form{background:white;border-radius:var(--radio);box-shadow:var(--sombra);overflow:hidden;position:sticky;top:120px;}
+.ph{background:linear-gradient(135deg,var(--azul),var(--azul-claro));padding:18px 20px;color:white;}
+.ph h2{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:700;}
+.ph p{font-size:.76rem;opacity:.8;margin-top:2px;}
+.fb{padding:18px;display:flex;flex-direction:column;gap:13px;}
+.campo{display:flex;flex-direction:column;gap:5px;}
+.campo label{font-size:.74rem;font-weight:600;color:var(--azul);text-transform:uppercase;letter-spacing:.5px;}
+.campo input,.campo textarea,.campo select{border:2px solid var(--gris-claro);border-radius:10px;padding:8px 12px;font-family:'DM Sans',sans-serif;font-size:.88rem;color:#1a2a3a;transition:border-color .2s,box-shadow .2s;outline:none;background:var(--blanco);}
+.campo input:focus,.campo textarea:focus,.campo select:focus{border-color:var(--azul-claro);box-shadow:0 0 0 3px rgba(26,125,184,.12);}
+.campo textarea{resize:vertical;min-height:60px;}
+
+.ub-box{border:2px solid var(--gris-claro);border-radius:12px;overflow:hidden;}
+.ub-status{padding:9px 12px;display:flex;align-items:center;gap:8px;background:var(--agua-suave);}
+.dot-e{width:8px;height:8px;border-radius:50%;background:var(--gris);flex-shrink:0;transition:background .3s;}
+.dot-e.activo{background:var(--verde);}
+.ub-status p{font-size:.78rem;color:var(--azul);font-weight:500;flex:1;}
+.ub-status small{color:var(--gris);font-size:.71rem;display:block;}
+.ub-acc{padding:8px 10px;display:flex;gap:7px;}
+.btn-ub{flex:1;border:none;border-radius:9px;cursor:pointer;padding:8px 8px;font-family:'Syne',sans-serif;font-size:.78rem;font-weight:700;display:flex;align-items:center;justify-content:center;gap:4px;transition:opacity .2s,transform .1s;}
+.btn-ub:hover{opacity:.88;transform:translateY(-1px);}
+.btn-gps{background:linear-gradient(90deg,var(--verde),#29a066);color:white;}
+.btn-mp{background:linear-gradient(90deg,var(--azul),var(--azul-claro));color:white;}
+.mini-map{width:100%;height:140px;border:0;display:none;}
+.mini-map.visible{display:block;}
+
+.fz{border:2px dashed var(--agua);border-radius:12px;padding:14px;text-align:center;cursor:pointer;background:var(--agua-suave);transition:background .2s;position:relative;}
+.fz:hover{background:#bde8f7;}
+.fz input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.fp{width:100%;height:130px;object-fit:cover;border-radius:9px;display:none;margin-bottom:6px;}
+.fz .fi{font-size:1.6rem;margin-bottom:5px;}
+.fz p{font-size:.78rem;color:var(--azul);font-weight:500;}
+.fz small{color:var(--gris);font-size:.71rem;}
+
+.btn-save{background:linear-gradient(90deg,var(--azul),var(--azul-claro));color:white;border:none;border-radius:12px;padding:12px;font-family:'Syne',sans-serif;font-size:.92rem;font-weight:700;cursor:pointer;transition:opacity .2s,transform .1s;display:flex;align-items:center;justify-content:center;gap:7px;}
+.btn-save:hover{opacity:.9;transform:translateY(-1px);}
+.btn-save:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+
+/* LISTA CLIENTES */
+.search-bar{background:white;border-radius:var(--radio);padding:13px 16px;box-shadow:var(--sombra);display:flex;align-items:center;gap:9px;margin-bottom:14px;}
+.search-bar input{flex:1;border:none;outline:none;font-family:'DM Sans',sans-serif;font-size:.9rem;background:transparent;}
+.tb{background:var(--agua-suave);color:var(--azul);border-radius:20px;padding:3px 11px;font-size:.76rem;font-weight:600;white-space:nowrap;}
+.clientes-list{display:flex;flex-direction:column;gap:11px;}
+.cc{background:white;border-radius:var(--radio);box-shadow:var(--sombra);overflow:hidden;display:flex;transition:transform .2s,box-shadow .2s;animation:si .25s ease;}
+@keyframes si{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.cc:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(10,79,122,.18);}
+.cf{width:95px;min-height:95px;flex-shrink:0;background:var(--agua-suave);display:flex;align-items:center;justify-content:center;font-size:2.1rem;overflow:hidden;}
+.cf img{width:100%;height:100%;object-fit:cover;}
+.ci{flex:1;padding:12px 14px;min-width:0;}
+.ci h3{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;color:var(--azul);margin-bottom:4px;}
+.ir{display:flex;align-items:center;gap:4px;font-size:.78rem;color:var(--gris);margin-bottom:2px;}
+.ir a{color:var(--azul-claro);text-decoration:none;}
+.deuda-tag{background:#fdeaea;color:var(--rojo);border-radius:8px;padding:1px 8px;font-size:.72rem;font-weight:700;}
+.ca{display:flex;flex-direction:column;justify-content:center;padding:8px 7px;gap:5px;flex-shrink:0;}
+.ba{border:none;border-radius:7px;cursor:pointer;padding:6px 9px;font-size:.7rem;font-weight:600;font-family:'DM Sans',sans-serif;transition:opacity .15s;white-space:nowrap;width:100%;}
+.ba:hover{opacity:.8;}
+.ba-map{background:var(--agua-suave);color:var(--azul-claro);}
+.ba-nav{background:#e8f5e9;color:#2e7d32;}
+.ba-call{background:#e6f7ef;color:var(--verde);}
+.ba-del{background:#fdeaea;color:var(--rojo);}
+.ba-entrega{background:#fff3e0;color:var(--naranja);}
+
+/* ENTREGAS */
+.entregas-layout{display:grid;grid-template-columns:340px 1fr;gap:22px;align-items:start;}
+.entrega-form{background:white;border-radius:var(--radio);box-shadow:var(--sombra);overflow:hidden;position:sticky;top:120px;}
+.entrega-list{display:flex;flex-direction:column;gap:11px;}
+.entrega-card{background:white;border-radius:var(--radio);padding:14px 16px;box-shadow:var(--sombra);display:flex;align-items:center;gap:14px;animation:si .25s ease;}
+.ec-icon{width:44px;height:44px;border-radius:12px;background:var(--agua-suave);display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;}
+.ec-info{flex:1;min-width:0;}
+.ec-info h4{font-family:'Syne',sans-serif;font-size:.92rem;font-weight:700;color:var(--azul);}
+.ec-info p{font-size:.78rem;color:var(--gris);margin-top:2px;}
+.ec-monto{text-align:right;flex-shrink:0;}
+.ec-monto .amount{font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;}
+.ec-monto .amount.pagado{color:var(--verde);}
+.ec-monto .amount.pendiente{color:var(--rojo);}
+.ec-monto small{font-size:.7rem;color:var(--gris);display:block;}
+.btn-pagar{background:var(--verde);color:white;border:none;border-radius:8px;padding:5px 12px;font-size:.74rem;font-weight:700;cursor:pointer;margin-top:4px;font-family:'DM Sans',sans-serif;}
+
+/* RUTA */
+.ruta-layout{display:grid;grid-template-columns:300px 1fr;gap:22px;align-items:start;}
+.ruta-panel{background:white;border-radius:var(--radio);box-shadow:var(--sombra);overflow:hidden;position:sticky;top:120px;}
+.ruta-list{display:flex;flex-direction:column;gap:11px;}
+.ruta-card{background:white;border-radius:var(--radio);padding:14px 16px;box-shadow:var(--sombra);display:flex;align-items:center;gap:12px;cursor:grab;animation:si .25s ease;}
+.ruta-card.completado{opacity:.55;}
+.rc-num{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--azul),var(--azul-claro));color:white;font-family:'Syne',sans-serif;font-weight:800;font-size:.9rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.rc-info{flex:1;}
+.rc-info h4{font-family:'Syne',sans-serif;font-size:.92rem;font-weight:700;color:var(--azul);}
+.rc-info p{font-size:.76rem;color:var(--gris);}
+.rc-actions{display:flex;gap:6px;flex-shrink:0;}
+.btn-rc{border:none;border-radius:8px;cursor:pointer;padding:6px 10px;font-size:.72rem;font-weight:600;font-family:'DM Sans',sans-serif;}
+.btn-rc-nav{background:#e8f5e9;color:#2e7d32;}
+.btn-rc-done{background:var(--agua-suave);color:var(--azul);}
+.btn-rc-done.hecho{background:#e8f5e9;color:var(--verde);}
+.clientes-check{display:flex;flex-direction:column;gap:7px;max-height:420px;overflow-y:auto;}
+.check-item{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--agua-suave);border-radius:10px;cursor:pointer;transition:background .15s;}
+.check-item:hover{background:#bde8f7;}
+.check-item.selected{background:var(--azul-claro);}
+.check-item.selected span{color:white;}
+.check-item input[type=checkbox]{accent-color:var(--azul);width:16px;height:16px;flex-shrink:0;}
+.check-item span{font-size:.84rem;font-weight:500;}
+
+/* MODALES */
+.mo{display:none;position:fixed;inset:0;background:rgba(10,30,50,.65);z-index:500;align-items:center;justify-content:center;}
+.mo.open{display:flex;}
+.modal{background:white;border-radius:20px;overflow:hidden;width:92%;max-width:750px;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.modal-sm{max-width:420px;}
+.mh{background:linear-gradient(90deg,var(--azul),var(--azul-claro));color:white;padding:15px 20px;display:flex;align-items:center;justify-content:space-between;}
+.mh h3{font-family:'Syne',sans-serif;font-size:1rem;}
+.mh p{font-size:.74rem;opacity:.8;margin-top:1px;}
+.mc{background:rgba(255,255,255,.2);border:none;color:white;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:.95rem;}
+.mf{padding:12px 15px;background:var(--agua-suave);display:flex;align-items:center;justify-content:space-between;gap:9px;flex-wrap:wrap;}
+.btn-cf{background:linear-gradient(90deg,var(--verde),#29a066);color:white;border:none;border-radius:10px;padding:8px 18px;font-family:'Syne',sans-serif;font-weight:700;font-size:.86rem;cursor:pointer;}
+.inst{background:#fffbea;border-left:4px solid var(--amarillo);border-radius:0 8px 8px 0;padding:9px 12px;margin:0 13px 3px;font-size:.76rem;color:#5a4a00;line-height:1.6;}
+.inst strong{display:block;margin-bottom:2px;}
+.modal-body{padding:20px;}
+.modal-body .campo{margin-bottom:12px;}
+
+/* EMPTY */
+.empty{background:white;border-radius:var(--radio);padding:46px 24px;text-align:center;box-shadow:var(--sombra);}
+.empty .ei{font-size:3rem;margin-bottom:12px;}
+.empty h3{font-family:'Syne',sans-serif;font-size:1.1rem;color:var(--azul);margin-bottom:6px;}
+.empty p{color:var(--gris);font-size:.83rem;}
+
+/* BANNER ROL */
+.banner-rol{border-radius:var(--radio);padding:12px 16px;display:flex;align-items:center;gap:10px;font-size:.83rem;margin-bottom:14px;}
+.banner-rol.repartidor{background:#fff8e1;border:1px solid #ffe082;color:#5d4037;}
+.banner-rol.admin{background:#e8f5e9;border:1px solid #a5d6a7;color:#1b5e20;}
+
+/* TOAST */
+.toast{position:fixed;bottom:22px;right:22px;color:white;padding:11px 18px;border-radius:12px;font-weight:600;font-size:.86rem;box-shadow:0 8px 24px rgba(0,0,0,.18);display:flex;align-items:center;gap:7px;transform:translateY(80px);opacity:0;transition:all .3s;z-index:9997;max-width:300px;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.verde{background:var(--verde);} .toast.azul{background:var(--azul-claro);} .toast.rojo{background:var(--rojo);} .toast.naranja{background:var(--naranja);}
+.spin{display:inline-block;animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@media(max-width:768px){
+  .two-col,.entregas-layout,.ruta-layout,.chart-row{grid-template-columns:1fr;}
+  .panel-form,.entrega-form,.ruta-panel{position:static;}
+  header .sp{display:none;}
+  .logo-img{height:38px;}
+  .cc{flex-direction:column;}
+  .cf{width:100%;height:150px;}
+  .ca{flex-direction:row;padding:10px 12px;flex-wrap:wrap;}
+  .ba{width:auto;flex:1;}
+  .mf{flex-direction:column;}
+  .tab-btn span{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <img class="login-logo" id="logo-login" src="" alt="Agua Viva">
+    <h2>Bienvenido</h2>
+    <p>Selecciona tu perfil para continuar</p>
+    <div class="roles-grid">
+      <div class="rol-btn selected" id="brr" onclick="selRol('repartidor')"><div class="ri">🚚</div><div class="rn">Repartidor</div><div class="rd">Ver, agregar, entregar</div></div>
+      <div class="rol-btn" id="bra" onclick="selRol('admin')"><div class="ri">👑</div><div class="rn">Administrador</div><div class="rd">Control total</div></div>
+    </div>
+    <div class="pass-field" id="pf"><label>🔒 Contraseña</label><input type="password" id="inp-pass" placeholder="Contraseña de administrador" onkeydown="if(event.key==='Enter')entrar()"></div>
+    <div class="error-msg" id="err-msg">❌ Contraseña incorrecta</div>
+    <button class="btn-entrar" onclick="entrar()">Entrar →</button>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div id="loading-screen">
+  <img id="logo-loading" src="" alt="">
+  <p id="load-txt">Conectando con Google Sheets...</p>
+  <div class="loader-bar"><div class="loader-fill" id="lf" style="width:0%"></div></div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <img id="logo-header" class="logo-img" src="" alt="Agua Viva">
+  <div class="hr">
+    <div class="rol-badge" id="rol-badge"></div>
+    <div class="nube-b"><div class="nd" id="nd"></div><span id="ntxt">...</span></div>
+    <div class="sp">👥 <strong id="total-h">0</strong></div>
+    <button class="btn-salir" onclick="cerrarSesion()">↩ Salir</button>
+  </div>
+</header>
+
+<!-- TABS -->
+<div class="tabs-bar" id="tabs-bar" style="display:none;">
+  <button class="tab-btn active" onclick="showTab('stats')" id="tab-stats"><span class="ti">📊</span><span>Estadísticas</span></button>
+  <button class="tab-btn" onclick="showTab('clientes')" id="tab-clientes"><span class="ti">👥</span><span>Clientes</span></button>
+  <button class="tab-btn" onclick="showTab('entregas')" id="tab-entregas"><span class="ti">📦</span><span>Entregas</span></button>
+  <button class="tab-btn" onclick="showTab('ruta')" id="tab-ruta"><span class="ti">📅</span><span>Ruta del Día</span></button>
+</div>
+
+<!-- ═══════════ TAB: ESTADÍSTICAS ═══════════ -->
+<div class="tab-content active" id="tab-stats-content">
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-icon azul">👥</div><div><div class="stat-val" id="s-clientes">0</div><div class="stat-lbl">Clientes registrados</div></div></div>
+    <div class="stat-card"><div class="stat-icon verde">📦</div><div><div class="stat-val" id="s-entregas">0</div><div class="stat-lbl">Entregas totales</div></div></div>
+    <div class="stat-card"><div class="stat-icon naranja">💰</div><div><div class="stat-val" id="s-ingresos">$0</div><div class="stat-lbl">Ingresos del mes</div></div></div>
+    <div class="stat-card"><div class="stat-icon rojo">⚠️</div><div><div class="stat-val" id="s-deudas">$0</div><div class="stat-lbl">Total en deudas</div></div></div>
+  </div>
+  <div class="chart-row">
+    <div class="chart-card">
+      <h3>📦 Top clientes por entregas</h3>
+      <div id="chart-entregas"></div>
+    </div>
+    <div class="chart-card">
+      <h3>⚠️ Clientes con deuda</h3>
+      <div id="chart-deudas"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ TAB: CLIENTES ═══════════ -->
+<div class="tab-content" id="tab-clientes-content">
+  <div class="two-col">
+    <div class="panel-form">
+      <div class="ph"><h2>➕ Nuevo Cliente</h2><p>Se guarda en Google Sheets ☁️</p></div>
+      <div class="fb">
+        <div class="campo"><label>👤 Nombre</label><input type="text" id="inp-nombre" placeholder="Nombre completo"></div>
+        <div class="campo"><label>📱 Teléfono</label><input type="tel" id="inp-tel" placeholder="555-123-4567"></div>
+        <div class="campo"><label>📍 Dirección</label><textarea id="inp-dir" placeholder="Calle, número, colonia..."></textarea></div>
+        <div class="campo"><label>📦 Garrafones por semana</label><input type="number" id="inp-garr" value="1" min="1" max="99"></div>
+        <div class="campo"><label>💰 Precio por garrafón ($)</label><input type="number" id="inp-precio" value="25" min="1"></div>
+        <div class="campo">
+          <label>🗺️ Ubicación</label>
+          <div class="ub-box">
+            <div class="ub-status"><div class="dot-e" id="dot-e"></div><div><p id="txt-e">Sin ubicación</p><small id="txt-c">Usa los botones</small></div></div>
+            <div class="ub-acc">
+              <button class="btn-ub btn-gps" onclick="obtenerGPS()">📡 GPS</button>
+              <button class="btn-ub btn-mp" onclick="abrirPicker()">🗺️ Buscar</button>
+            </div>
+            <iframe id="mini-mapa" class="mini-map" src="" allowfullscreen></iframe>
+          </div>
+        </div>
+        <div class="campo">
+          <label>🏠 Foto de la Casa</label>
+          <div class="fz"><input type="file" id="inp-foto" accept="image/*" onchange="prevFoto(event)"><img id="foto-prev" class="fp" src="" alt=""><div class="fi" id="fi">📷</div><p id="ft">Toca para elegir foto</p><small>Cámara o galería</small></div>
+        </div>
+        <div class="campo"><label>📝 Notas</label><textarea id="inp-notas" placeholder="Observaciones..."></textarea></div>
+        <button class="btn-save" id="btn-save" onclick="guardarCliente()">☁️ Guardar Cliente</button>
+      </div>
+    </div>
+    <div>
+      <div class="search-bar"><span>🔍</span><input type="text" id="buscador" placeholder="Buscar cliente..." oninput="renderClientes()"><div class="tb" id="tb">0</div></div>
+      <div id="banner-rol" class="banner-rol" style="display:none;"></div>
+      <div class="clientes-list" id="lista-clientes"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ TAB: ENTREGAS ═══════════ -->
+<div class="tab-content" id="tab-entregas-content">
+  <div class="entregas-layout">
+    <div class="entrega-form">
+      <div class="ph"><h2>📦 Registrar Entrega</h2><p>Selecciona el cliente y cantidad</p></div>
+      <div class="fb">
+        <div class="campo"><label>👤 Cliente</label><select id="e-cliente"><option value="">— Selecciona cliente —</option></select></div>
+        <div class="campo"><label>📦 Garrafones entregados</label><input type="number" id="e-garr" value="1" min="1"></div>
+        <div class="campo"><label>💰 Precio por garrafón ($)</label><input type="number" id="e-precio" value="25" min="1"></div>
+        <div style="background:var(--agua-suave);border-radius:10px;padding:12px;text-align:center;">
+          <div style="font-size:.78rem;color:var(--gris);margin-bottom:4px;">Total a cobrar</div>
+          <div style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--azul);" id="e-total">$0</div>
+        </div>
+        <div class="campo">
+          <label>💳 ¿Pagó ahora?</label>
+          <div style="display:flex;gap:10px;">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1;background:var(--agua-suave);border-radius:10px;padding:10px;font-size:.85rem;font-weight:500;">
+              <input type="radio" name="pago" value="si" id="pago-si" checked style="accent-color:var(--verde);"> ✅ Sí pagó
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1;background:#fdeaea;border-radius:10px;padding:10px;font-size:.85rem;font-weight:500;">
+              <input type="radio" name="pago" value="no" id="pago-no" style="accent-color:var(--rojo);"> ❌ Queda a deber
+            </label>
+          </div>
+        </div>
+        <button class="btn-save" id="btn-entrega" onclick="registrarEntrega()">📦 Registrar Entrega</button>
+      </div>
+    </div>
+    <div>
+      <div class="search-bar"><span>🔍</span><input type="text" id="b-entregas" placeholder="Buscar entregas..." oninput="renderEntregas()"><div class="tb" id="tb-e">0</div></div>
+      <div class="entrega-list" id="lista-entregas"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ TAB: RUTA DEL DÍA ═══════════ -->
+<div class="tab-content" id="tab-ruta-content">
+  <div class="ruta-layout">
+    <div class="ruta-panel">
+      <div class="ph"><h2>📅 Planear Ruta</h2><p>Selecciona clientes para hoy</p></div>
+      <div class="fb">
+        <div style="font-size:.78rem;color:var(--gris);margin-bottom:6px;">Selecciona los clientes a visitar hoy:</div>
+        <div class="clientes-check" id="clientes-check"></div>
+        <button class="btn-save" style="margin-top:8px;" onclick="guardarRuta()">📅 Guardar Ruta del Día</button>
+      </div>
+    </div>
+    <div>
+      <div style="background:white;border-radius:var(--radio);padding:14px 18px;box-shadow:var(--sombra);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;color:var(--azul);">📅 Ruta de hoy</div>
+          <div style="font-size:.78rem;color:var(--gris);" id="ruta-fecha"></div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <div style="background:var(--agua-suave);border-radius:10px;padding:6px 14px;font-size:.8rem;color:var(--azul);font-weight:600;" id="ruta-progreso">0 / 0 completados</div>
+        </div>
+      </div>
+      <div class="ruta-list" id="lista-ruta"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PICKER -->
+<div class="mo" id="mo-picker">
+  <div class="modal">
+    <div class="mh"><div><h3>📍 Seleccionar ubicación</h3><p>Busca y escribe las coordenadas</p></div><button class="mc" onclick="cerrarPicker()">✕</button></div>
+    <div style="padding:12px 14px 6px;display:flex;gap:7px;">
+      <input type="text" id="pk-busq" placeholder="Dirección del cliente..." style="flex:1;border:2px solid var(--gris-claro);border-radius:10px;padding:8px 11px;font-family:'DM Sans',sans-serif;font-size:.87rem;outline:none;" onkeydown="if(event.key==='Enter')buscarDir()">
+      <button onclick="buscarDir()" style="background:var(--azul-claro);color:white;border:none;border-radius:10px;padding:8px 14px;cursor:pointer;font-weight:700;font-size:.84rem;">🔍</button>
+    </div>
+    <div class="inst"><strong>📌 Obtener coordenadas:</strong>1. Busca la dirección → 2. Abre Google Maps en otra pestaña → 3. Clic derecho sobre la casa → 4. Copia los números aquí</div>
+    <iframe id="pk-iframe" style="width:100%;height:270px;border:0;" src="https://maps.google.com/maps?q=Mexico&z=12&output=embed" allowfullscreen></iframe>
+    <div class="mf">
+      <div style="font-size:.76rem;color:var(--azul);font-weight:600;">Coordenadas:</div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <input type="text" id="pk-lat" placeholder="Lat: 20.9674" style="width:130px;border:2px solid var(--agua);border-radius:8px;padding:7px 9px;font-size:.82rem;outline:none;font-family:'DM Sans',sans-serif;">
+        <input type="text" id="pk-lng" placeholder="Lng: -89.5926" style="width:140px;border:2px solid var(--agua);border-radius:8px;padding:7px 9px;font-size:.82rem;outline:none;font-family:'DM Sans',sans-serif;">
+        <button class="btn-cf" onclick="confirmarCoords()">✅ Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL VER MAPA -->
+<div class="mo" id="mo-mapa">
+  <div class="modal">
+    <div class="mh"><div><h3 id="mm-titulo">📍 Ubicación</h3><p id="mm-coords"></p></div><button class="mc" onclick="cerrarMapa()">✕</button></div>
+    <iframe id="mm-iframe" style="width:100%;height:350px;border:0;" src=""></iframe>
+    <div style="padding:12px 16px;background:var(--agua-suave);display:flex;gap:9px;align-items:center;flex-wrap:wrap;">
+      <span style="font-size:.8rem;color:var(--azul);font-weight:600;">Google Maps:</span>
+      <a id="mm-ver" href="#" target="_blank" style="background:var(--azul-claro);color:white;text-decoration:none;border-radius:10px;padding:8px 14px;font-weight:700;font-size:.82rem;">🗺️ Ver lugar</a>
+      <a id="mm-nav" href="#" target="_blank" style="background:linear-gradient(90deg,#2e7d32,#43a047);color:white;text-decoration:none;border-radius:10px;padding:8px 14px;font-weight:700;font-size:.82rem;">🧭 Cómo llegar</a>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL COBRAR DEUDA -->
+<div class="mo" id="mo-cobrar">
+  <div class="modal modal-sm">
+    <div class="mh"><h3>💰 Registrar Pago</h3><button class="mc" onclick="document.getElementById('mo-cobrar').classList.remove('open')">✕</button></div>
+    <div class="modal-body">
+      <p style="font-size:.85rem;color:var(--gris);margin-bottom:16px;">¿El cliente está pagando esta entrega?</p>
+      <div id="cobrar-info" style="background:var(--agua-suave);border-radius:10px;padding:12px;margin-bottom:16px;"></div>
+      <button class="btn-save" onclick="confirmarPago()" style="background:linear-gradient(90deg,var(--verde),#29a066);">✅ Confirmar Pago</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast verde" id="toast">✅ Listo</div>
+
+<script>
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwsDavvwd5u_HLHZmcW055mXE1R6C8yDzhXAeTpZTayO8IscEH6m8cF71zF8HVsGdzG/exec';
+const ADMIN_PASS = 'Soma2155';
+const LOGO_B64 = 'data:image/png;base64,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';
+
+['logo-login','logo-loading','logo-header'].forEach(id=>document.getElementById(id).src=LOGO_B64);
+
+let rol=null, rolSel='repartidor';
+let clientes=[], entregas=[], ruta=[];
+let fotoB64=null, latA=null, lngA=null;
+let cobrarData=null;
+
+// ── LOGIN ──
+function selRol(r){
+  rolSel=r;
+  document.getElementById('bra').classList.toggle('selected',r==='admin');
+  document.getElementById('brr').classList.toggle('selected',r==='repartidor');
+  document.getElementById('pf').classList.toggle('visible',r==='admin');
+  document.getElementById('err-msg').style.display='none';
+  if(r==='admin')setTimeout(()=>document.getElementById('inp-pass').focus(),100);
+}
+function entrar(){
+  if(rolSel==='admin'&&document.getElementById('inp-pass').value!==ADMIN_PASS){
+    document.getElementById('err-msg').style.display='block';
+    document.getElementById('inp-pass').value='';return;
+  }
+  rol=rolSel;
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('loading-screen').style.display='flex';
+  cargarTodo();
+}
+function cerrarSesion(){
+  rol=null;clientes=[];entregas=[];ruta=[];
+  document.getElementById('tabs-bar').style.display='none';
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-stats-content').classList.add('active');
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('inp-pass').value='';
+  selRol('repartidor');
+}
+
+// ── TABS ──
+function showTab(name){
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name+'-content').classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='stats')renderStats();
+  if(name==='entregas'){poblarSelectClientes();renderEntregas();}
+  if(name==='ruta'){renderCheckClientes();renderRuta();}
+}
+
+// ── API ──
+async function api(action,data){
+  if(data){
+    const r=await fetch(SCRIPT_URL+'?action='+action,{method:'POST',body:JSON.stringify(data)});
+    return await r.json();
+  } else {
+    const r=await fetch(SCRIPT_URL+'?action='+action+'&t='+Date.now());
+    return await r.json();
+  }
+}
+async function apiParam(action,params){
+  let url=SCRIPT_URL+'?action='+action+'&t='+Date.now();
+  Object.keys(params).forEach(k=>url+='&'+k+'='+params[k]);
+  const r=await fetch(url); return await r.json();
+}
+
+function setLoad(p,t){document.getElementById('lf').style.width=p+'%';document.getElementById('load-txt').textContent=t;}
+function setNube(e,t){document.getElementById('ntxt').textContent=t;document.getElementById('nd').className='nd '+(e==='ok'?'ok':e==='sync'?'sync':'err');}
+
+async function cargarTodo(){
+  setNube('sync','Cargando...');
+  try{
+    setLoad(25,'Cargando clientes...');
+    const rc=await api('getClientes'); clientes=rc.clientes||[];
+    setLoad(55,'Cargando entregas...');
+    const re=await api('getEntregas'); entregas=re.entregas||[];
+    setLoad(80,'Cargando ruta...');
+    const rr=await api('getRuta'); ruta=rr.ruta||[];
+    setLoad(100,'¡Listo!');
+    setTimeout(()=>{
+      document.getElementById('loading-screen').style.display='none';
+      document.getElementById('tabs-bar').style.display='flex';
+      setNube('ok','Google Sheets ✅');
+      mostrarBadge();
+      renderStats();
+      renderClientes();
+    },350);
+  }catch(e){
+    setNube('err','Error');
+    setLoad(100,'Error de conexión');
+    setTimeout(()=>{
+      document.getElementById('loading-screen').style.display='none';
+      document.getElementById('tabs-bar').style.display='flex';
+      mostrarBadge();
+    },800);
+    toast('❌ Error al conectar con Google Sheets','rojo');
+  }
+}
+
+function mostrarBadge(){
+  const b=document.getElementById('rol-badge');
+  if(rol==='admin'){b.className='rol-badge admin';b.textContent='👑 Administrador';}
+  else{b.className='rol-badge repartidor';b.textContent='🚚 Repartidor';}
+  document.getElementById('total-h').textContent=clientes.length;
+  const br=document.getElementById('banner-rol');
+  if(rol==='repartidor'){br.style.display='flex';br.className='banner-rol repartidor';br.innerHTML='🚚 <strong>Modo Repartidor</strong> — Puedes ver, agregar y registrar entregas. Solo el admin puede borrar.';}
+  else{br.style.display='flex';br.className='banner-rol admin';br.innerHTML='👑 <strong>Modo Administrador</strong> — Control total.';}
+}
+
+// ── ESTADÍSTICAS ──
+function renderStats(){
+  document.getElementById('s-clientes').textContent=clientes.length;
+  document.getElementById('s-entregas').textContent=entregas.length;
+  const mesActual=new Date().getMonth();
+  const ingresosMes=entregas.filter(e=>new Date(e.fecha).getMonth()===mesActual&&(e.pagado==='TRUE'||e.pagado===true)).reduce((s,e)=>s+parseFloat(e.monto||0),0);
+  document.getElementById('s-ingresos').textContent='$'+ingresosMes.toFixed(0);
+  const totalDeuda=clientes.reduce((s,c)=>s+parseFloat(c.deuda||0),0);
+  document.getElementById('s-deudas').textContent='$'+totalDeuda.toFixed(0);
+
+  // Top clientes por entregas
+  const conteo={};
+  entregas.forEach(e=>{conteo[e.clienteNombre]=(conteo[e.clienteNombre]||0)+parseInt(e.garrafones||1);});
+  const top=Object.entries(conteo).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const maxE=top[0]?top[0][1]:1;
+  document.getElementById('chart-entregas').innerHTML=top.length?top.map(([n,v])=>`
+    <div class="bar-item"><div class="bar-label" title="${n}">${n}</div><div class="bar-track"><div class="bar-fill" style="width:${(v/maxE*100).toFixed(0)}%"></div></div><div class="bar-val">${v}</div></div>`).join(''):'<p style="color:var(--gris);font-size:.82rem;text-align:center;padding:20px 0;">Sin entregas aún</p>';
+
+  // Clientes con deuda
+  const conDeuda=clientes.filter(c=>parseFloat(c.deuda||0)>0).sort((a,b)=>parseFloat(b.deuda)-parseFloat(a.deuda)).slice(0,6);
+  document.getElementById('chart-deudas').innerHTML=conDeuda.length?conDeuda.map(c=>`
+    <div class="deuda-item"><div class="deuda-nombre">${c.nombre}</div><div class="deuda-monto">$${parseFloat(c.deuda).toFixed(0)}</div></div>`).join(''):'<p style="color:var(--verde);font-size:.82rem;text-align:center;padding:20px 0;">✅ Sin deudas pendientes</p>';
+}
+
+// ── CLIENTES ──
+function prevFoto(ev){
+  const f=ev.target.files[0];if(!f)return;
+  const rd=new FileReader();
+  rd.onload=(e)=>{
+    const img=new Image();
+    img.onload=()=>{
+      const c=document.createElement('canvas');
+      const M=500;let w=img.width,h=img.height;
+      if(w>M){h=h*M/w;w=M;}if(h>M){w=w*M/h;h=M;}
+      c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);
+      fotoB64=c.toDataURL('image/jpeg',.65);
+      const p=document.getElementById('foto-prev');p.src=fotoB64;p.style.display='block';
+      document.getElementById('fi').style.display='none';
+      document.getElementById('ft').textContent='✅ Foto cargada';
+    };img.src=e.target.result;
+  };rd.readAsDataURL(f);
+}
+
+function obtenerGPS(){
+  if(!navigator.geolocation){alert('Usa Buscar en mapa.');return;}
+  document.getElementById('txt-e').innerHTML='<span class="spin">⏳</span> Obteniendo GPS...';
+  navigator.geolocation.getCurrentPosition(
+    p=>setUbic(p.coords.latitude.toFixed(6),p.coords.longitude.toFixed(6),'GPS'),
+    ()=>{document.getElementById('txt-e').textContent='No se pudo obtener GPS';toast('⚠️ Activa GPS o usa Buscar','rojo');},
+    {timeout:10000,enableHighAccuracy:true}
+  );
+}
+function abrirPicker(){
+  document.getElementById('mo-picker').classList.add('open');
+  const d=document.getElementById('inp-dir').value.trim();
+  if(d){document.getElementById('pk-busq').value=d;buscarDir();}
+}
+function cerrarPicker(){document.getElementById('mo-picker').classList.remove('open');}
+function buscarDir(){
+  const q=document.getElementById('pk-busq').value.trim();if(!q)return;
+  document.getElementById('pk-iframe').src=`https://maps.google.com/maps?q=${encodeURIComponent(q)}&z=17&output=embed`;
+  toast('🗺️ Mapa actualizado','azul');
+}
+function confirmarCoords(){
+  const lat=document.getElementById('pk-lat').value.trim();
+  const lng=document.getElementById('pk-lng').value.trim();
+  if(!lat||!lng||isNaN(parseFloat(lat))||isNaN(parseFloat(lng))){alert('⚠️ Escribe coordenadas válidas\nEjemplo:\nLatitud: 20.9674\nLongitud: -89.5926');return;}
+  cerrarPicker();setUbic(parseFloat(lat).toFixed(6),parseFloat(lng).toFixed(6),'Mapa');
+}
+function setUbic(lat,lng,f){
+  latA=lat;lngA=lng;
+  document.getElementById('dot-e').classList.add('activo');
+  document.getElementById('txt-e').textContent=`✅ Ubicación (${f})`;
+  document.getElementById('txt-c').textContent=`${lat}, ${lng}`;
+  const i=document.getElementById('mini-mapa');
+  i.src=`https://maps.google.com/maps?q=${lat},${lng}&z=17&output=embed`;
+  i.classList.add('visible');
+  toast('📍 Ubicación guardada','verde');
+}
+
+async function guardarCliente(){
+  const nombre=document.getElementById('inp-nombre').value.trim();
+  const tel=document.getElementById('inp-tel').value.trim();
+  const dir=document.getElementById('inp-dir').value.trim();
+  const garr=parseInt(document.getElementById('inp-garr').value)||1;
+  const notas=document.getElementById('inp-notas').value.trim();
+  if(!nombre||!tel||!dir){alert('⚠️ Completa: Nombre, Teléfono y Dirección');return;}
+
+  const btn=document.getElementById('btn-save');
+  btn.disabled=true;btn.innerHTML='<span class="spin">⏳</span> Guardando...';
+  setNube('sync','Guardando...');
+
+  const c={id:Date.now(),nombre,telefono:tel,direccion:dir,lat:latA,lng:lngA,notas,foto:fotoB64,garrafonesSemana:garr,deuda:0,agregadoPor:rol,fecha:new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})};
+  try{
+    await api('addCliente',c);
+    clientes.unshift(c);
+    document.getElementById('total-h').textContent=clientes.length;
+    limpiarForm();renderClientes();
+    setNube('ok','Google Sheets ✅');
+    toast('✅ '+nombre+' guardado','verde');
+  }catch(e){setNube('err','Error');toast('❌ Error al guardar','rojo');}
+  btn.disabled=false;btn.innerHTML='☁️ Guardar Cliente';
+}
+
+async function eliminarCliente(id){
+  if(rol!=='admin'){toast('🔒 Solo el admin puede borrar','rojo');return;}
+  if(!confirm('¿Eliminar este cliente permanentemente?'))return;
+  setNube('sync','...');
+  try{
+    await apiParam('deleteCliente',{id});
+    clientes=clientes.filter(c=>String(c.id)!==String(id));
+    document.getElementById('total-h').textContent=clientes.length;
+    renderClientes();setNube('ok','Google Sheets ✅');
+    toast('🗑️ Cliente eliminado','azul');
+  }catch(e){toast('❌ Error al eliminar','rojo');}
+}
+
+function renderClientes(){
+  const q=document.getElementById('buscador').value.toLowerCase();
+  const f=clientes.filter(c=>(c.nombre||'').toLowerCase().includes(q)||(c.telefono||'').includes(q)||(c.direccion||'').toLowerCase().includes(q));
+  document.getElementById('tb').textContent=f.length;
+  const lista=document.getElementById('lista-clientes');
+  if(!f.length){lista.innerHTML=`<div class="empty"><div class="ei">💧</div><h3>${clientes.length?'Sin resultados':'Sin clientes'}</h3><p>${clientes.length?'Intenta otra búsqueda':'Agrega tu primer cliente'}</p></div>`;return;}
+  const esA=rol==='admin';
+  lista.innerHTML=f.map(c=>`
+    <div class="cc">
+      <div class="cf">${c.foto?`<img src="${c.foto}" alt="">`:'🏠'}</div>
+      <div class="ci">
+        <h3>${c.nombre||''}</h3>
+        <div class="ir">📱 <a href="tel:${c.telefono}">${c.telefono||''}</a></div>
+        <div class="ir">📍 ${c.direccion||''}</div>
+        <div class="ir">📦 ${c.garrafonesSemana||1} garrafones/semana</div>
+        ${parseFloat(c.deuda||0)>0?`<div class="ir">💰 <span class="deuda-tag">Debe: $${parseFloat(c.deuda).toFixed(0)}</span></div>`:'<div class="ir" style="color:var(--verde);">✅ Sin deuda</div>'}
+        ${c.lat?`<div class="ir">🗺️ <span style="color:var(--verde);font-weight:600;">Ubicación ✅</span></div>`:''}
+        <div class="ir" style="font-size:.72rem;">📅 ${c.fecha||''} · ${c.agregadoPor==='admin'?'👑':'🚚'} ${c.agregadoPor||''}</div>
+      </div>
+      <div class="ca">
+        ${c.lat?`<button class="ba ba-map" onclick="verMapa('${c.lat}','${c.lng}','${(c.nombre||'').replace(/'/g,"\\'")}')">🗺️ Mapa</button><a href="https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}&travelmode=driving" target="_blank" style="text-decoration:none"><button class="ba ba-nav">🧭 Ruta</button></a>`:''}
+        <a href="tel:${c.telefono}" style="text-decoration:none"><button class="ba ba-call">📞 Llamar</button></a>
+        <button class="ba ba-entrega" onclick="irAEntrega('${c.id}')">📦 Entrega</button>
+        ${esA?`<button class="ba ba-del" onclick="eliminarCliente(${c.id})">🗑️ Borrar</button>`:''}
+      </div>
+    </div>`).join('');
+}
+
+function irAEntrega(id){
+  showTab('entregas');
+  poblarSelectClientes();
+  setTimeout(()=>{ document.getElementById('e-cliente').value=id; calcTotal(); },100);
+}
+
+function limpiarForm(){
+  ['inp-nombre','inp-tel','inp-dir','inp-notas'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('inp-garr').value='1';
+  document.getElementById('inp-precio').value='25';
+  fotoB64=null;latA=null;lngA=null;
+  document.getElementById('inp-foto').value='';
+  document.getElementById('foto-prev').style.display='none';
+  document.getElementById('fi').style.display='block';
+  document.getElementById('ft').textContent='Toca para elegir foto';
+  document.getElementById('dot-e').classList.remove('activo');
+  document.getElementById('txt-e').textContent='Sin ubicación';
+  document.getElementById('txt-c').textContent='Usa los botones';
+  document.getElementById('mini-mapa').classList.remove('visible');
+  document.getElementById('mini-mapa').src='';
+  document.getElementById('pk-lat').value='';document.getElementById('pk-lng').value='';
+}
+
+// ── VER MAPA ──
+function verMapa(lat,lng,nombre){
+  document.getElementById('mm-titulo').textContent='📍 '+nombre;
+  document.getElementById('mm-coords').textContent=lat+', '+lng;
+  document.getElementById('mm-iframe').src=`https://maps.google.com/maps?q=${lat},${lng}&z=17&output=embed`;
+  document.getElementById('mm-ver').href=`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+  document.getElementById('mm-nav').href=`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
+  document.getElementById('mo-mapa').classList.add('open');
+}
+function cerrarMapa(){document.getElementById('mo-mapa').classList.remove('open');document.getElementById('mm-iframe').src='';}
+
+// ── ENTREGAS ──
+function poblarSelectClientes(){
+  const sel=document.getElementById('e-cliente');
+  const val=sel.value;
+  sel.innerHTML='<option value="">— Selecciona cliente —</option>'+clientes.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+  if(val)sel.value=val;
+  calcTotal();
+}
+
+function calcTotal(){
+  const garr=parseInt(document.getElementById('e-garr').value)||0;
+  const precio=parseFloat(document.getElementById('e-precio').value)||0;
+  document.getElementById('e-total').textContent='$'+(garr*precio).toFixed(0);
+}
+document.getElementById('e-garr').addEventListener('input',calcTotal);
+document.getElementById('e-precio').addEventListener('input',calcTotal);
+
+async function registrarEntrega(){
+  const cId=document.getElementById('e-cliente').value;
+  const garr=parseInt(document.getElementById('e-garr').value)||1;
+  const precio=parseFloat(document.getElementById('e-precio').value)||25;
+  const pagado=document.getElementById('pago-si').checked;
+  if(!cId){alert('⚠️ Selecciona un cliente');return;}
+  const cliente=clientes.find(c=>String(c.id)===String(cId));
+  if(!cliente)return;
+
+  const btn=document.getElementById('btn-entrega');
+  btn.disabled=true;btn.innerHTML='<span class="spin">⏳</span> Guardando...';
+  setNube('sync','...');
+
+  const e={id:Date.now(),clienteId:cId,clienteNombre:cliente.nombre,garrafones:garr,monto:(garr*precio).toFixed(2),pagado,fecha:new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}),repartidor:rol};
+  try{
+    await api('addEntrega',e);
+    entregas.unshift(e);
+    if(!pagado){cliente.deuda=(parseFloat(cliente.deuda||0)+garr*precio);}
+    renderEntregas();renderClientes();renderStats();
+    setNube('ok','Google Sheets ✅');
+    toast('📦 Entrega registrada'+(pagado?' — Pagado ✅':' — Queda a deber'),'verde');
+    document.getElementById('e-cliente').value='';calcTotal();
+  }catch(err){toast('❌ Error al registrar','rojo');}
+  btn.disabled=false;btn.innerHTML='📦 Registrar Entrega';
+}
+
+function abrirCobrar(eId,cId,monto,nombre){
+  cobrarData={eId,cId,monto};
+  document.getElementById('cobrar-info').innerHTML=`<strong style="font-family:'Syne',sans-serif;color:var(--azul);">${nombre}</strong><br><span style="font-size:.84rem;color:var(--gris);">Monto a cobrar: </span><strong style="color:var(--verde);font-size:1.1rem;">$${parseFloat(monto).toFixed(0)}</strong>`;
+  document.getElementById('mo-cobrar').classList.add('open');
+}
+
+async function confirmarPago(){
+  if(!cobrarData)return;
+  document.getElementById('mo-cobrar').classList.remove('open');
+  setNube('sync','...');
+  try{
+    await apiParam('marcarPagado',{entregaId:cobrarData.eId,clienteId:cobrarData.cId,monto:cobrarData.monto});
+    const e=entregas.find(e=>String(e.id)===String(cobrarData.eId));
+    if(e)e.pagado=true;
+    const c=clientes.find(c=>String(c.id)===String(cobrarData.cId));
+    if(c)c.deuda=Math.max(0,parseFloat(c.deuda||0)-parseFloat(cobrarData.monto));
+    renderEntregas();renderClientes();renderStats();
+    setNube('ok','Google Sheets ✅');
+    toast('💰 Pago registrado correctamente','verde');
+  }catch(err){toast('❌ Error al registrar pago','rojo');}
+}
+
+function renderEntregas(){
+  const q=document.getElementById('b-entregas').value.toLowerCase();
+  const f=entregas.filter(e=>(e.clienteNombre||'').toLowerCase().includes(q));
+  document.getElementById('tb-e').textContent=f.length;
+  const lista=document.getElementById('lista-entregas');
+  if(!f.length){lista.innerHTML=`<div class="empty"><div class="ei">📦</div><h3>Sin entregas</h3><p>Registra la primera entrega</p></div>`;return;}
+  lista.innerHTML=f.map(e=>{
+    const pag=e.pagado==='TRUE'||e.pagado===true;
+    return `<div class="entrega-card">
+      <div class="ec-icon">${pag?'✅':'📦'}</div>
+      <div class="ec-info">
+        <h4>${e.clienteNombre||''}</h4>
+        <p>${e.garrafones} garrafón${e.garrafones>1?'es':''} · 📅 ${e.fecha||''} · 🚚 ${e.repartidor||''}</p>
+      </div>
+      <div class="ec-monto">
+        <div class="amount ${pag?'pagado':'pendiente'}">$${parseFloat(e.monto||0).toFixed(0)}</div>
+        <small>${pag?'✅ Pagado':'⏳ Pendiente'}</small>
+        ${!pag?`<button class="btn-pagar" onclick="abrirCobrar('${e.id}','${e.clienteId}','${e.monto}','${(e.clienteNombre||'').replace(/'/g,"\\'")}')">💰 Cobrar</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── RUTA ──
+function renderCheckClientes(){
+  const rutaIds=ruta.map(r=>String(r.clienteId));
+  document.getElementById('clientes-check').innerHTML=clientes.map(c=>`
+    <div class="check-item ${rutaIds.includes(String(c.id))?'selected':''}" onclick="toggleCheck(this,'${c.id}')">
+      <input type="checkbox" ${rutaIds.includes(String(c.id))?'checked':''} onchange="toggleCheck(this.parentElement,'${c.id}')">
+      <span>${c.nombre} <span style="font-size:.72rem;opacity:.7;">(${c.garrafonesSemana||1} garr.)</span></span>
+    </div>`).join('');
+}
+
+function toggleCheck(el,id){
+  el.classList.toggle('selected');
+  const cb=el.querySelector('input[type=checkbox]');
+  if(cb)cb.checked=!cb.checked;
+}
+
+async function guardarRuta(){
+  const seleccionados=[...document.querySelectorAll('.check-item.selected')].map(el=>{
+    const id=el.onclick?.toString().match(/'([^']+)'/)?.[1]||el.querySelector('input')?.getAttribute('onchange')?.match(/'([^']+)'/)?.[1];
+    return id;
+  }).filter(Boolean);
+
+  // extraer IDs correctamente
+  const items=[...document.querySelectorAll('.check-item')];
+  const ids=items.filter(el=>el.classList.contains('selected')).map(el=>{
+    const m=el.getAttribute('onclick')?.match(/'([^']+)'/);
+    return m?m[1]:null;
+  }).filter(Boolean);
+
+  const fecha=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
+  const rutaData=ids.map(id=>({clienteId:id,fecha}));
+  setNube('sync','...');
+  try{
+    await api('setRuta',rutaData);
+    ruta=rutaData;
+    renderRuta();
+    setNube('ok','Google Sheets ✅');
+    toast('📅 Ruta del día guardada','verde');
+  }catch(e){toast('❌ Error al guardar ruta','rojo');}
+}
+
+function renderRuta(){
+  const hoy=new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
+  document.getElementById('ruta-fecha').textContent=hoy;
+  const lista=document.getElementById('lista-ruta');
+  if(!ruta.length){lista.innerHTML=`<div class="empty"><div class="ei">📅</div><h3>Sin ruta para hoy</h3><p>Selecciona los clientes a visitar</p></div>`;document.getElementById('ruta-progreso').textContent='0 / 0 completados';return;}
+
+  const completados=ruta.filter(r=>r.completado).length;
+  document.getElementById('ruta-progreso').textContent=`${completados} / ${ruta.length} completados`;
+
+  lista.innerHTML=ruta.map((r,i)=>{
+    const c=clientes.find(cl=>String(cl.id)===String(r.clienteId));
+    if(!c)return '';
+    return `<div class="ruta-card ${r.completado?'completado':''}">
+      <div class="rc-num">${i+1}</div>
+      <div class="rc-info">
+        <h4>${c.nombre}</h4>
+        <p>📍 ${c.direccion||''} · 📦 ${c.garrafonesSemana||1} garrafones</p>
+        ${parseFloat(c.deuda||0)>0?`<span class="deuda-tag">Debe $${parseFloat(c.deuda).toFixed(0)}</span>`:''}
+      </div>
+      <div class="rc-actions">
+        ${c.lat?`<a href="https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}&travelmode=driving" target="_blank" style="text-decoration:none"><button class="btn-rc btn-rc-nav">🧭</button></a>`:''}
+        <button class="btn-rc btn-rc-done ${r.completado?'hecho':''}" onclick="toggleCompletado(${i})">${r.completado?'✅':'⬜'}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleCompletado(i){
+  ruta[i].completado=!ruta[i].completado;
+  renderRuta();
+  const completados=ruta.filter(r=>r.completado).length;
+  if(completados===ruta.length&&ruta.length>0)toast('🎉 ¡Ruta del día completada!','verde');
+}
+
+function toast(msg,color='verde'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className=`toast ${color} show`;
+  setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+document.getElementById('mo-picker').addEventListener('click',function(e){if(e.target===this)cerrarPicker();});
+document.getElementById('mo-mapa').addEventListener('click',function(e){if(e.target===this)cerrarMapa();});
+</script>
+</body>
+</html>
